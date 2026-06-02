@@ -6,7 +6,7 @@ name: Kenne Index Auto Invest
 
 on:
   schedule:
-    - cron: '0 22 * * 0'   # 周日 22:00 UTC = 周一 06:00 CST
+    - cron: '30 2* * * '   # 周日 22:00 UTC = 周一 06:00 CST
   workflow_dispatch:         # 支持手动触发：Actions → Run workflow
 
 permissions:
@@ -55,13 +55,13 @@ jobs:
           # BUDGET_AMOUNT:
           #   MONTHLY 模式 = 每月总上限（USDT）
           #   FIXED   模式 = 每次固定金额（USDT）
-          BUDGET_AMOUNT: '700'
+          BUDGET_AMOUNT: '65'
 
           # RUN_INTERVAL_DAYS：执行间隔天数，必须与上方 cron 周期一致
           #   每周填 7（对应 cron: '0 22 * * 0'）
           #   每天填 1（对应 cron: '0 1 * * *'）
           #   每月填 30（对应 cron: '0 1 1 * *'）
-          RUN_INTERVAL_DAYS: '7'
+          RUN_INTERVAL_DAYS: '1'
 
           # SIMULATED:
           #   true  = 模拟盘，不产生真实订单（推荐先用此模式测试）
