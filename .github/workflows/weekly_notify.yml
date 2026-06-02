@@ -55,7 +55,7 @@ jobs:
           # BUDGET_AMOUNT:
           #   MONTHLY 模式 = 每月总上限（USDT）
           #   FIXED   模式 = 每次固定金额（USDT）
-          BUDGET_AMOUNT: '65'
+          BUDGET_AMOUNT: '85'
 
           # RUN_INTERVAL_DAYS：执行间隔天数，必须与上方 cron 周期一致
           #   每周填 7（对应 cron: '0 22 * * 0'）
