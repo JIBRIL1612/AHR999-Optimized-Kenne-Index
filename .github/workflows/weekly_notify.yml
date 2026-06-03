@@ -50,12 +50,12 @@ jobs:
           # BUDGET_MODE:
           #   MONTHLY = 月度预算自动均摊，推荐新手
           #   FIXED   = 每次执行固定金额，无月度上限
-          BUDGET_MODE: MONTHLY
+          BUDGET_MODE: FIXED
 
           # BUDGET_AMOUNT:
           #   MONTHLY 模式 = 每月总上限（USDT）
           #   FIXED   模式 = 每次固定金额（USDT）
-          BUDGET_AMOUNT: '85'
+          BUDGET_AMOUNT: '30'
 
           # RUN_INTERVAL_DAYS：执行间隔天数，必须与上方 cron 周期一致
           #   每周填 7（对应 cron: '0 22 * * 0'）
