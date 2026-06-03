@@ -668,11 +668,18 @@ def _build_report(signals, allocs, budget):
             </div>
             <div style="font-size:14px;color:#6b7280;margin-bottom:8px;">价格 <span style="font-size:18px;font-weight:bold;color:#1f2937;">${prc:,.2f}</span> USDT</div>
             
-            <!-- Kenne值进度条 -->
-            <div style="background:#e5e7eb;border-radius:6px;height:24px;position:relative;overflow:hidden;margin-bottom:12px;">
-                <div style="background:linear-gradient(90deg,#059669 0%,#10b981 20%,#22c55e 40%,#3b82f6 60%,#f59e0b 80%,#ef4444 100%);width:100%;height:100%;"></div>
-                <div style="position:absolute;top:0;left:{bar_width}%;transform:translateX(-50%);width:3px;height:100%;background:#1f2937;box-shadow:0 0 4px rgba(0,0,0,0.5);"></div>
-                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;font-weight:bold;color:white;text-shadow:0 1px 2px rgba(0,0,0,0.5);">Kenne {ahr:.4f}</div>
+            <!-- Kenne值彩虹条指示器 -->
+            <div style="margin-bottom:12px;">
+                <div style="position:relative;height:28px;border-radius:6px;overflow:hidden;">
+                    <!-- 彩虹渐变背景: 左红(高价) -> 右绿(低价) -->
+                    <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(90deg,#dc2626 0%,#ef4444 16%,#f59e0b 33%,#3b82f6 50%,#22c55e 66%,#10b981 83%,#059669 100%);"></div>
+                    <!-- 黑色指针 -->
+                    <div style="position:absolute;top:0;left:{bar_width}%;transform:translateX(-50%);width:4px;height:100%;background:#1f2937;box-shadow:0 0 6px rgba(0,0,0,0.8);z-index:10;"></div>
+                    <!-- 顶部白色小三角 -->
+                    <div style="position:absolute;top:0;left:{bar_width}%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid #1f2937;z-index:11;"></div>
+                    <!-- Kenne值标签 -->
+                    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:12px;font-weight:bold;color:white;text-shadow:0 1px 3px rgba(0,0,0,0.8);z-index:5;">Kenne {ahr:.4f}</div>
+                </div>
             </div>
             
             <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
