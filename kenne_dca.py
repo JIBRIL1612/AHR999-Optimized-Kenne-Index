@@ -605,48 +605,56 @@ def _build_report(signals, allocs, budget):
         score = _calc_score(ahr)
         
         # 确定区间和颜色
+        # 彩虹条颜色分布: 红(0-16%)→橙(16-33%)→黄(33-50%)→蓝(50-66%)→浅绿(66-83%)→深绿(83-100%)
+        # 对应区间: ≥1.2→0.8-1.2→0.6-0.8→0.45-0.6→0.35-0.45→0.25-0.35→<0.25
         if ahr < 0.25:
             zone = '极低估'
             zone_color = '#059669'
             zone_bg = '#6ee7b7'
             bar_color = '#059669'
-            bar_width = 100
+            # <0.25 对应 83%-100%，线性插值
+            bar_width = 83 + (ahr / 0.25) * 17
         elif ahr < 0.35:
             zone = '低估'
             zone_color = '#10b981'
             zone_bg = '#a7f3d0'
             bar_color = '#10b981'
-            bar_width = 85
+            # 0.25-0.35 对应 66%-83%
+            bar_width = 66 + ((ahr - 0.25) / 0.10) * 17
         elif ahr < 0.45:
             zone = '偏低'
             zone_color = '#22c55e'
             zone_bg = '#d1fae5'
             bar_color = '#22c55e'
-            bar_width = 70
+            # 0.35-0.45 对应 50%-66%
+            bar_width = 50 + ((ahr - 0.35) / 0.10) * 16
         elif ahr < 0.6:
             zone = '合理'
             zone_color = '#3b82f6'
             zone_bg = '#dbeafe'
             bar_color = '#3b82f6'
-            bar_width = 50
+            # 0.45-0.6 对应 33%-50%
+            bar_width = 33 + ((ahr - 0.45) / 0.15) * 17
         elif ahr < 0.8:
             zone = '偏贵'
             zone_color = '#f59e0b'
             zone_bg = '#fef3c7'
             bar_color = '#f59e0b'
-            bar_width = 30
+            # 0.6-0.8 对应 16%-33%
+            bar_width = 16 + ((ahr - 0.6) / 0.20) * 17
         elif ahr < 1.2:
             zone = '极贵'
             zone_color = '#ef4444'
             zone_bg = '#fee2e2'
             bar_color = '#ef4444'
-            bar_width = 15
+            # 0.8-1.2 对应 0%-16%
+            bar_width = ((ahr - 0.8) / 0.40) * 16
         else:
             zone = '停止'
             zone_color = '#dc2626'
             zone_bg = '#fee2e2'
             bar_color = '#dc2626'
-            bar_width = 5
+            bar_width = 0
         
         score_bg = '#22c55e' if score >= 70 else '#f59e0b' if score >= 40 else '#ef4444'
         momentum_text = momentum_cn.get(s['momentum'], s['momentum'])
