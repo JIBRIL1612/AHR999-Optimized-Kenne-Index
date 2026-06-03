@@ -119,7 +119,7 @@ def _momentum_state(ret_3d, ret_7d, ret_14d, bounce_7, cfg):
     elif is_knife and has_bounce:     return 'STABILIZING'
     else:                             return 'STABLE'
 
-    else:                       return 0.0
+
 
 
 def _score(ahr, cfg, momentum):
