@@ -588,7 +588,7 @@ def _momentum_to_chinese(momentum):
     momentum_map = {
         'STABLE': '趋势平稳',
         'RISING': '趋势上升',
-        'FALLING': '趋势下降',
+        'FALLING': '短期急跌',
         'STRONG': '强势上涨',
         'WEAK': '弱势下跌'
     }

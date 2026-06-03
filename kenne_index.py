@@ -37,14 +37,14 @@ COIN_CONFIG = {
         symbol='BTC', slope=4.7777, intercept=-13.1486,
         genesis='2009-01-03',
         buy_thresh=0.45, dca_thresh=1.20,
-        knife_7d=-0.15, knife_14d=-0.25, bounce_min=0.05,
+        knife_7d=-0.10, knife_14d=-0.18, bounce_min=0.05,
         r2=0.78, data_years=15,
     ),
     'ETH': CoinConfig(
         symbol='ETH', slope=1.9872, intercept=-3.5997,
         genesis='2015-07-30',
         buy_thresh=0.45, dca_thresh=1.20,
-        knife_7d=-0.15, knife_14d=-0.25, bounce_min=0.05,
+        knife_7d=-0.10, knife_14d=-0.18, bounce_min=0.05,
         r2=0.58, data_years=10,
     ),
     'SOL': CoinConfig(
