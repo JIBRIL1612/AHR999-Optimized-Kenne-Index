@@ -6,7 +6,7 @@ name: Kenne Index Auto Invest
 
 on:
   schedule:
-    - cron: '30 2 * * * '   # 周日 22:00 UTC = 周一 06:00 CST
+    - cron: '0 0 * * *'   # 每天 00:00 UTC = 08:00 CST
   workflow_dispatch:         # 支持手动触发：Actions → Run workflow
 
 permissions:
