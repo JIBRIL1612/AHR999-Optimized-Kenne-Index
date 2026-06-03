@@ -56,7 +56,7 @@ COIN_CONFIG = {
     ),
 }
 
-MOMENTUM_MULT = {'STABLE': 1.00, 'STABILIZING': 0.75, 'FALLING': 0.40}
+MOMENTUM_MULT = {'STABLE': 1.00, 'STABILIZING': 0.75, 'FALLING': 0.40, 'SHARP_DROP': 0.30}
 
 # 重拟合参数持久化文件（GitHub Actions 会自动提交回仓库）
 MODEL_PARAMS_FILE = 'model_params.json'
@@ -109,17 +109,16 @@ def _save_params(all_params: dict):
 
 # ─── 信号计算 ─────────────────────────────────────────────────────────────────
 
-def _momentum_state(ret_7d, ret_14d, bounce_7, cfg):
+
+def _momentum_state(ret_3d, ret_7d, ret_14d, bounce_7, cfg):
+    is_sharp   = ret_3d < -0.07  # 3日急跌7%
     is_knife   = (ret_7d < cfg.knife_7d) or (ret_14d < cfg.knife_14d)
     has_bounce = bounce_7 >= cfg.bounce_min
-    if   is_knife and not has_bounce: return 'FALLING'
+    if   is_sharp:                    return 'SHARP_DROP'
+    elif is_knife and not has_bounce: return 'FALLING'
     elif is_knife and has_bounce:     return 'STABILIZING'
     else:                             return 'STABLE'
 
-
-def _base_mult(ahr, cfg):
-    if   ahr < cfg.buy_thresh:  return 2.0
-    elif ahr <= cfg.dca_thresh: return 1.0
     else:                       return 0.0
 
 
@@ -189,6 +188,7 @@ def analyze(file_path: str, symbol: str,
     df_d['cost_200']  = df_d['Close'].rolling(200).apply(gmean, raw=True)
     df_d['kenne_index']    = (df_d['Close'] / df_d['cost_200']) * (df_d['Close'] / df_d['valuation'])
 
+    df_d['ret_3d']   = df_d['Close'].pct_change(3)
     df_d['ret_7d']   = df_d['Close'].pct_change(7)
     df_d['ret_14d']  = df_d['Close'].pct_change(14)
     df_d['low7']     = df_d['Low'].rolling(7).min()
@@ -202,7 +202,7 @@ def analyze(file_path: str, symbol: str,
     row  = df_d.iloc[-1]
     ahr  = row['kenne_index']
 
-    momentum   = _momentum_state(row['ret_7d'], row['ret_14d'], row['bounce_7'], cfg)
+    momentum   = _momentum_state(row['ret_3d'], row['ret_7d'], row['ret_14d'], row['bounce_7'], cfg)
     base_m     = _base_mult(ahr, cfg)
     final_m    = base_m * MOMENTUM_MULT[momentum]
     comp_score = _score(ahr, cfg, momentum)
