@@ -589,6 +589,14 @@ def _build_report(signals, allocs, budget):
             budget.interval, f'每{budget.interval}天投')
         budget_desc = f'${budget.amount:.0f}/月 · {interval_label}'
     
+    # 趋势中文映射
+    momentum_cn = {
+        'STABLE': '趋势平稳',
+        'SHARP_DROP': '短期急跌',
+        'KNIFE_CATCH': '飞刀危险',
+        'BOUNCE': '反弹回升',
+    }
+    
     # 信号卡片
     signal_cards = []
     for s in signals:
@@ -596,20 +604,52 @@ def _build_report(signals, allocs, budget):
         prc = s.get('price', 0)
         score = _calc_score(ahr)
         
-        if ahr < 0.45:
+        # 确定区间和颜色
+        if ahr < 0.25:
             zone = '极低估'
+            zone_color = '#059669'
+            zone_bg = '#6ee7b7'
+            bar_color = '#059669'
+            bar_width = 100
+        elif ahr < 0.35:
+            zone = '低估'
             zone_color = '#10b981'
+            zone_bg = '#a7f3d0'
+            bar_color = '#10b981'
+            bar_width = 85
+        elif ahr < 0.45:
+            zone = '偏低'
+            zone_color = '#22c55e'
             zone_bg = '#d1fae5'
-        elif s['base_mult'] > 0:
-            zone = '定投区'
+            bar_color = '#22c55e'
+            bar_width = 70
+        elif ahr < 0.6:
+            zone = '合理'
             zone_color = '#3b82f6'
             zone_bg = '#dbeafe'
+            bar_color = '#3b82f6'
+            bar_width = 50
+        elif ahr < 0.8:
+            zone = '偏贵'
+            zone_color = '#f59e0b'
+            zone_bg = '#fef3c7'
+            bar_color = '#f59e0b'
+            bar_width = 30
+        elif ahr < 1.2:
+            zone = '极贵'
+            zone_color = '#ef4444'
+            zone_bg = '#fee2e2'
+            bar_color = '#ef4444'
+            bar_width = 15
         else:
-            zone = '观望区'
-            zone_color = '#6b7280'
-            zone_bg = '#f3f4f6'
+            zone = '停止'
+            zone_color = '#dc2626'
+            zone_bg = '#fee2e2'
+            bar_color = '#dc2626'
+            bar_width = 5
         
         score_bg = '#22c55e' if score >= 70 else '#f59e0b' if score >= 40 else '#ef4444'
+        momentum_text = momentum_cn.get(s['momentum'], s['momentum'])
         
         signal_cards.append(f"""
         <div style="background:#f8fafc;border-radius:12px;padding:16px;margin:12px 0;border-left:4px solid {zone_color};">
@@ -617,11 +657,18 @@ def _build_report(signals, allocs, budget):
                 <span style="font-size:20px;font-weight:bold;color:#1f2937;">{s['symbol']}</span>
                 <span style="background:{score_bg};color:white;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:bold;">{score}分</span>
             </div>
-            <div style="font-size:14px;color:#6b7280;margin-bottom:4px;">价格 <span style="font-size:18px;font-weight:bold;color:#1f2937;">${prc:,.2f}</span> USDT</div>
-            <div style="display:flex;gap:12px;margin-top:8px;">
+            <div style="font-size:14px;color:#6b7280;margin-bottom:8px;">价格 <span style="font-size:18px;font-weight:bold;color:#1f2937;">${prc:,.2f}</span> USDT</div>
+            
+            <!-- Kenne值进度条 -->
+            <div style="background:#e5e7eb;border-radius:6px;height:24px;position:relative;overflow:hidden;margin-bottom:12px;">
+                <div style="background:linear-gradient(90deg,#059669 0%,#10b981 20%,#22c55e 40%,#3b82f6 60%,#f59e0b 80%,#ef4444 100%);width:100%;height:100%;"></div>
+                <div style="position:absolute;top:0;left:{bar_width}%;transform:translateX(-50%);width:3px;height:100%;background:#1f2937;box-shadow:0 0 4px rgba(0,0,0,0.5);"></div>
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;font-weight:bold;color:white;text-shadow:0 1px 2px rgba(0,0,0,0.5);">Kenne {ahr:.4f}</div>
+            </div>
+            
+            <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
                 <span style="background:{zone_bg};color:{zone_color};padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;">{zone}</span>
-                <span style="color:#6b7280;font-size:13px;">Kenne {ahr:.4f}</span>
-                <span style="color:#6b7280;font-size:13px;">{s['momentum']}</span>
+                <span style="color:#6b7280;font-size:13px;">{momentum_text}</span>
                 <span style="color:#3b82f6;font-weight:600;font-size:13px;">建议 {s['final_mult']:.2f}x</span>
             </div>
         </div>
@@ -652,7 +699,7 @@ def _build_report(signals, allocs, budget):
     else:
         alloc_rows = ['<tr><td colspan="4" style="padding:20px;text-align:center;color:#6b7280;">当前无买入信号，本次停止定投</td></tr>']
     
-    # 预算信息
+    # 预算信息 (仅MONTHLY模式显示)
     if budget.mode == 'MONTHLY':
         spent = budget.spent_this_month()
         remaining = budget.monthly_remaining()
@@ -667,11 +714,7 @@ def _build_report(signals, allocs, budget):
         </div>
         """
     else:
-        budget_html = f"""
-        <div style="background:#f3f4f6;border-radius:12px;padding:16px;margin:16px 0;">
-            <div style="font-size:14px;color:#6b7280;">FIXED 模式 · 本月已投 ${budget.spent_this_month():.2f}</div>
-        </div>
-        """
+        budget_html = ""
     
     html = f"""<!DOCTYPE html>
 <html>
@@ -745,21 +788,41 @@ def _build_report(signals, allocs, budget):
                 </div>
             </div>
             
-            <!-- Kenne Reference -->
+            <!-- Kenne Reference - 7档区间 -->
             <div style="background:#f8fafc;border-radius:12px;padding:16px;margin:16px 0;">
-                <div style="font-weight:600;margin-bottom:12px;color:#374151;">Kenne Index 参考区间</div>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                    <span style="font-size:12px;color:#6b7280;">极低估 (强力买入)</span>
-                    <span style="font-size:12px;color:#6b7280;">0.0 - 0.2</span>
+                <div style="font-weight:600;margin-bottom:12px;color:#374151;">Kenne Index 参考区间 (F方案)</div>
+                <div style="display:flex;align-items:center;margin-bottom:12px;">
+                    <div style="flex:1;height:12px;background:linear-gradient(90deg,#dc2626 0%,#ef4444 16%,#f59e0b 33%,#3b82f6 50%,#22c55e 66%,#10b981 83%,#059669 100%);border-radius:6px;"></div>
                 </div>
-                <div style="height:8px;background:linear-gradient(90deg,#10b981 0%,#22c55e 20%,#f59e0b 50%,#ef4444 80%,#dc2626 100%);border-radius:4px;margin-bottom:8px;"></div>
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <span style="font-size:12px;color:#6b7280;">定投区 (可买入)</span>
-                    <span style="font-size:12px;color:#6b7280;">0.2 - 0.45</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
-                    <span style="font-size:12px;color:#6b7280;">观望区 (暂停)</span>
-                    <span style="font-size:12px;color:#6b7280;">0.45+</span>
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:12px;">
+                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#fee2e2;border-radius:6px;">
+                        <span style="color:#991b1b;font-weight:500;">🛑 ≥1.2 停止</span>
+                        <span style="color:#dc2626;font-weight:bold;">0x</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#ffedd5;border-radius:6px;">
+                        <span style="color:#9a3412;font-weight:500;">📉 0.8-1.2 极贵</span>
+                        <span style="color:#f97316;font-weight:bold;">0.3x</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#fef3c7;border-radius:6px;">
+                        <span style="color:#92400e;font-weight:500;">📊 0.6-0.8 偏贵</span>
+                        <span style="color:#f59e0b;font-weight:bold;">0.6x</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#dbeafe;border-radius:6px;">
+                        <span style="color:#1e40af;font-weight:500;">🎯 0.45-0.6 合理</span>
+                        <span style="color:#3b82f6;font-weight:bold;">1x</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#d1fae5;border-radius:6px;">
+                        <span style="color:#065f46;font-weight:500;">💚 0.35-0.45 偏低</span>
+                        <span style="color:#10b981;font-weight:bold;">1.5x</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#a7f3d0;border-radius:6px;">
+                        <span style="color:#047857;font-weight:500;">✅ 0.25-0.35 低估</span>
+                        <span style="color:#059669;font-weight:bold;">2x</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#6ee7b7;border-radius:6px;grid-column:span 2;">
+                        <span style="color:#064e3b;font-weight:500;">🚀 <0.25 极低估</span>
+                        <span style="color:#047857;font-weight:bold;">3x</span>
+                    </div>
                 </div>
             </div>
             
