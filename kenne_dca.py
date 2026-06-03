@@ -1,5 +1,5 @@
 """
-Kenne Index x OKX 自动定投 (HTML邮件版本)
+Kenne Index x OKX 自动定投 (HTML邮件版本 V2)
 """
 
 import os, sys, json, hmac, base64, hashlib, time, logging, argparse
@@ -516,7 +516,7 @@ def show_history(month=None):
     print(f'{"-"*58}\n  total: ${total:.2f}')
 
 
-# ─── HTML 邮件通知 (全新版本) ──────────────────────────────────────────────────
+# ─── HTML 邮件通知 (V2 优化版) ─────────────────────────────────────────────────
 def _send_email(subject, body_html, body_text=None):
     """发送 HTML 邮件（支持纯文本备选）"""
     msg = MIMEMultipart('alternative')
@@ -555,16 +555,64 @@ def _calc_score(kenne):
         return int(100 - (kenne - 0.2) / (0.8 - 0.2) * 100)
 
 
+def _get_zone_info(kenne):
+    """获取区间信息 (中国股市颜色: 红=买, 绿=持, 灰=观望)"""
+    if kenne < 0.45:
+        return {
+            'name': '极低估',
+            'action': '强力买入',
+            'color': '#ef4444',      # 红色 - 买入
+            'bg': '#fee2e2',
+            'light_bg': '#fef2f2'
+        }
+    elif kenne < 0.8:
+        return {
+            'name': '定投区',
+            'action': '可以买入',
+            'color': '#22c55e',      # 绿色 - 可买
+            'bg': '#dcfce7',
+            'light_bg': '#f0fdf4'
+        }
+    else:
+        return {
+            'name': '观望区',
+            'action': '暂停定投',
+            'color': '#6b7280',      # 灰色 - 观望
+            'bg': '#f3f4f6',
+            'light_bg': '#f9fafb'
+        }
+
+
+def _momentum_to_chinese(momentum):
+    """将动量翻译成中文"""
+    momentum_map = {
+        'STABLE': '趋势平稳',
+        'RISING': '趋势上升',
+        'FALLING': '趋势下降',
+        'STRONG': '强势上涨',
+        'WEAK': '弱势下跌'
+    }
+    return momentum_map.get(momentum, momentum)
+
+
 def _build_report(signals, allocs, budget):
-    """构建 HTML 信号报告"""
+    """构建 HTML 信号报告 V2"""
     date = datetime.date.today().strftime('%Y-%m-%d')
     data_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
     
     avg_kenne = sum(s['kenne_index'] for s in signals) / len(signals) if signals else 0
     overall_score = _calc_score(avg_kenne)
     
-    score_color = '#22c55e' if overall_score >= 70 else '#f59e0b' if overall_score >= 40 else '#ef4444'
-    score_text = '强力买入' if overall_score >= 70 else '可以买入' if overall_score >= 40 else '观望等待'
+    # 综合评分颜色
+    if overall_score >= 70:
+        score_color = '#ef4444'  # 红色 - 强力买入
+        score_text = '强力买入'
+    elif overall_score >= 40:
+        score_color = '#22c55e'  # 绿色 - 可以买入
+        score_text = '可以买入'
+    else:
+        score_color = '#6b7280'  # 灰色 - 观望
+        score_text = '观望等待'
     
     if budget.mode == 'FIXED':
         budget_desc = f'每次固定 ${budget.amount:.0f} USDT'
@@ -573,43 +621,81 @@ def _build_report(signals, allocs, budget):
             budget.interval, f'每{budget.interval}天投')
         budget_desc = f'${budget.amount:.0f}/月 · {interval_label}'
     
-    # 信号卡片
+    # 信号卡片 (V2 优化版)
     signal_cards = []
     for s in signals:
         ahr = s['kenne_index']
         prc = s.get('price', 0)
         score = _calc_score(ahr)
-        
-        if ahr < 0.45:
-            zone = '极低估'
-            zone_color = '#10b981'
-            zone_bg = '#d1fae5'
-        elif s['base_mult'] > 0:
-            zone = '定投区'
-            zone_color = '#3b82f6'
-            zone_bg = '#dbeafe'
-        else:
-            zone = '观望区'
-            zone_color = '#6b7280'
-            zone_bg = '#f3f4f6'
-        
-        score_bg = '#22c55e' if score >= 70 else '#f59e0b' if score >= 40 else '#ef4444'
+        zone = _get_zone_info(ahr)
+        momentum_cn = _momentum_to_chinese(s['momentum'])
         
         signal_cards.append(f"""
-        <div style="background:#f8fafc;border-radius:12px;padding:16px;margin:12px 0;border-left:4px solid {zone_color};">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <span style="font-size:20px;font-weight:bold;color:#1f2937;">{s['symbol']}</span>
-                <span style="background:{score_bg};color:white;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:bold;">{score}分</span>
+        <div style="background:white;border-radius:12px;padding:16px;margin:12px 0;border:1px solid #e5e7eb;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <!-- 第一行: 币种 + 评分 -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <span style="font-size:24px;font-weight:bold;color:#1f2937;">{s['symbol']}</span>
+                <span style="background:{zone['color']};color:white;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;">{zone['action']}</span>
             </div>
-            <div style="font-size:14px;color:#6b7280;margin-bottom:4px;">价格 <span style="font-size:18px;font-weight:bold;color:#1f2937;">${prc:,.2f}</span> USDT</div>
-            <div style="display:flex;gap:12px;margin-top:8px;">
-                <span style="background:{zone_bg};color:{zone_color};padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;">{zone}</span>
-                <span style="color:#6b7280;font-size:13px;">Kenne {ahr:.4f}</span>
-                <span style="color:#6b7280;font-size:13px;">{s['momentum']}</span>
-                <span style="color:#3b82f6;font-weight:600;font-size:13px;">建议 {s['final_mult']:.2f}x</span>
+            
+            <!-- 第二行: 价格 + Kenne数值 -->
+            <div style="display:flex;gap:16px;margin-bottom:12px;">
+                <div style="flex:1;">
+                    <div style="font-size:11px;color:#9ca3af;margin-bottom:2px;">价格</div>
+                    <div style="font-size:18px;font-weight:bold;color:#1f2937;">${prc:,.2f}</div>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-size:11px;color:#9ca3af;margin-bottom:2px;">Kenne Index</div>
+                    <div style="display:inline-block;background:{zone['light_bg']};border:2px solid {zone['color']};border-radius:8px;padding:4px 12px;">
+                        <span style="font-size:18px;font-weight:bold;color:{zone['color']};">{ahr:.4f}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 第三行: 区间标签 + 动量 + 建议倍数 -->
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <span style="background:{zone['bg']};color:{zone['color']};padding:4px 10px;border-radius:16px;font-size:12px;font-weight:600;">{zone['name']}</span>
+                <span style="color:#6b7280;font-size:12px;">&#8226;</span>
+                <span style="color:#6b7280;font-size:12px;">{momentum_cn}</span>
+                <span style="color:#6b7280;font-size:12px;">&#8226;</span>
+                <span style="color:#3b82f6;font-weight:600;font-size:12px;">建议 {s['final_mult']:.2f}x</span>
             </div>
         </div>
         """)
+    
+    # 参考区间说明 (V2 优化 - 删除彩色线条，改用色块)
+    ref_section = """
+    <div style="background:#f8fafc;border-radius:12px;padding:16px;margin:16px 0;">
+        <div style="font-weight:600;margin-bottom:16px;color:#374151;">Kenne Index 参考区间</div>
+        
+        <!-- 极低估 -->
+        <div style="display:flex;align-items:center;margin-bottom:12px;padding:10px;background:#fef2f2;border-radius:8px;border-left:4px solid #ef4444;">
+            <div style="width:80px;font-weight:600;color:#ef4444;">极低估</div>
+            <div style="flex:1;text-align:center;">
+                <span style="background:#ef4444;color:white;padding:4px 12px;border-radius:16px;font-size:13px;font-weight:600;">强力买入</span>
+            </div>
+            <div style="width:80px;text-align:right;color:#6b7280;font-size:13px;">&lt; 0.45</div>
+        </div>
+        
+        <!-- 定投区 -->
+        <div style="display:flex;align-items:center;margin-bottom:12px;padding:10px;background:#f0fdf4;border-radius:8px;border-left:4px solid #22c55e;">
+            <div style="width:80px;font-weight:600;color:#22c55e;">定投区</div>
+            <div style="flex:1;text-align:center;">
+                <span style="background:#22c55e;color:white;padding:4px 12px;border-radius:16px;font-size:13px;font-weight:600;">可以买入</span>
+            </div>
+            <div style="width:80px;text-align:right;color:#6b7280;font-size:13px;">0.45 - 0.8</div>
+        </div>
+        
+        <!-- 观望区 -->
+        <div style="display:flex;align-items:center;padding:10px;background:#f9fafb;border-radius:8px;border-left:4px solid #6b7280;">
+            <div style="width:80px;font-weight:600;color:#6b7280;">观望区</div>
+            <div style="flex:1;text-align:center;">
+                <span style="background:#6b7280;color:white;padding:4px 12px;border-radius:16px;font-size:13px;font-weight:600;">暂停定投</span>
+            </div>
+            <div style="width:80px;text-align:right;color:#6b7280;font-size:13px;">&gt; 0.8</div>
+        </div>
+    </div>
+    """
     
     # 分配详情
     alloc_rows = []
@@ -635,27 +721,6 @@ def _build_report(signals, allocs, budget):
         """)
     else:
         alloc_rows = ['<tr><td colspan="4" style="padding:20px;text-align:center;color:#6b7280;">当前无买入信号，本次停止定投</td></tr>']
-    
-    # 预算信息
-    if budget.mode == 'MONTHLY':
-        spent = budget.spent_this_month()
-        remaining = budget.monthly_remaining()
-        budget_html = f"""
-        <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:12px;padding:16px;color:white;margin:16px 0;">
-            <div style="font-size:12px;opacity:0.9;margin-bottom:4px;">月度预算</div>
-            <div style="font-size:24px;font-weight:bold;">${budget.amount:.0f}</div>
-            <div style="margin-top:12px;display:flex;justify-content:space-between;font-size:14px;">
-                <span>已花 ${spent:.2f}</span>
-                <span>剩余 ${remaining:.2f}</span>
-            </div>
-        </div>
-        """
-    else:
-        budget_html = f"""
-        <div style="background:#f3f4f6;border-radius:12px;padding:16px;margin:16px 0;">
-            <div style="font-size:14px;color:#6b7280;">FIXED 模式 · 本月已投 ${budget.spent_this_month():.2f}</div>
-        </div>
-        """
     
     html = f"""<!DOCTYPE html>
 <html>
@@ -693,23 +758,7 @@ def _build_report(signals, allocs, budget):
                 </div>
             </div>
             
-            <!-- Kenne Reference -->
-            <div style="background:#f8fafc;border-radius:12px;padding:16px;margin:16px 0;">
-                <div style="font-weight:600;margin-bottom:12px;color:#374151;">Kenne Index 参考区间</div>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                    <span style="font-size:12px;color:#6b7280;">极低估 (强力买入)</span>
-                    <span style="font-size:12px;color:#6b7280;">0.0 - 0.2</span>
-                </div>
-                <div style="height:8px;background:linear-gradient(90deg,#10b981 0%,#22c55e 20%,#f59e0b 50%,#ef4444 80%,#dc2626 100%);border-radius:4px;margin-bottom:8px;"></div>
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <span style="font-size:12px;color:#6b7280;">定投区 (可买入)</span>
-                    <span style="font-size:12px;color:#6b7280;">0.2 - 0.45</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
-                    <span style="font-size:12px;color:#6b7280;">观望区 (暂停)</span>
-                    <span style="font-size:12px;color:#6b7280;">0.45+</span>
-                </div>
-            </div>
+            {ref_section}
             
             <!-- Signals -->
             <div style="margin-top:20px;">
@@ -734,8 +783,6 @@ def _build_report(signals, allocs, budget):
                     </tbody>
                 </table>
             </div>
-            
-            {budget_html}
         </div>
         
         <!-- Footer -->
@@ -760,15 +807,14 @@ def _build_report(signals, allocs, budget):
     ]
     for s in signals:
         score = _calc_score(s['kenne_index'])
-        text_lines.append(f"  {s['symbol']}: ${s.get('price', 0):,.2f} | Kenne {s['kenne_index']:.4f} | 评分{score}分 | 建议{s['final_mult']:.2f}x")
+        zone = _get_zone_info(s['kenne_index'])
+        momentum_cn = _momentum_to_chinese(s['momentum'])
+        text_lines.append(f"  {s['symbol']}: ${s.get('price', 0):,.2f} | Kenne {s['kenne_index']:.4f} | {zone['name']} | {momentum_cn} | 建议{s['final_mult']:.2f}x")
     
     text_lines.extend(['', f'本次分配: ${run_amount:.2f} USDT'])
     if allocs:
         for a in allocs:
             text_lines.append(f"  {a['symbol']}: ${a['usdt_amount']:.2f} ({a['weight']:.0%}) x{a['final_mult']:.2f}")
-    
-    if budget.mode == 'MONTHLY':
-        text_lines.append(f"\n月预算: ${budget.amount:.0f} | 已花: ${budget.spent_this_month():.2f} | 剩余: ${budget.monthly_remaining():.2f}")
     
     return html, '\n'.join(text_lines)
 
