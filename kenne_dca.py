@@ -725,18 +725,19 @@ def _build_report(signals, allocs, budget):
                         </tr>
                     </thead>
                     <tbody>
-                        {''.join(f"""
-                        <tr style="border-top:1px solid #e2e8f0;">
-                            <td style="padding:8px 4px;font-weight:600;">{s['symbol']}</td>
-                            <td style="padding:8px 4px;text-align:center;color:{('#0ea5e9' if s.get('refitted') else '#64748b')}">
-                                {s['slope']:.4f} {'⚡' if s.get('refitted') else ''}
-                            </td>
-                            <td style="padding:8px 4px;text-align:center;color:{('#ef4444' if s['r2'] < 0.65 else '#22c55e')}">
-                                {s['r2']:.2f}
-                            </td>
-                            <td style="padding:8px 4px;text-align:center;color:#64748b;">{s.get('data_years', '-')}年</td>
-                        </tr>
-                        """ for s in signals)}
+                        {''.join(
+                            '<tr style="border-top:1px solid #e2e8f0;">'
+                            f'<td style="padding:8px 4px;font-weight:600;">{s["symbol"]}</td>'
+                            f'<td style="padding:8px 4px;text-align:center;color:{"#0ea5e9" if s.get("refitted") else "#64748b"}">'
+                            f'{s["slope"]:.4f} {"⚡" if s.get("refitted") else ""}'
+                            '</td>'
+                            f'<td style="padding:8px 4px;text-align:center;color:{"#ef4444" if s["r2"] < 0.65 else "#22c55e"}">'
+                            f'{s["r2"]:.2f}'
+                            '</td>'
+                            f'<td style="padding:8px 4px;text-align:center;color:#64748b;">{s.get("data_years", "-")}年</td>'
+                            '</tr>'
+                            for s in signals
+                        )}
                     </tbody>
                 </table>
                 <div style="font-size:11px;color:#94a3b8;margin-top:8px;">
