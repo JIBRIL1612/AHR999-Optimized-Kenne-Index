@@ -252,6 +252,8 @@ def analyze(file_path: str, symbol: str,
         'r2':         r2,
         'slope':      slope,
         'intercept':  intercept,
+        'refitted':   refitted,
+        'data_years': data_years,
     }
 
 
