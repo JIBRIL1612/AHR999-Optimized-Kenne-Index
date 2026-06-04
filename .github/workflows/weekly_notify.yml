@@ -12,6 +12,11 @@ on:
 permissions:
   contents: write
 
+env:
+  # 强制使用 Node.js 24（解决 Node.js 20 弃用警告）
+  # GitHub 将于 2026-09-16 移除 Node.js 20
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   notify:
     runs-on: ubuntu-latest
