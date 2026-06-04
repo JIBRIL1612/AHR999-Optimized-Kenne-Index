@@ -605,57 +605,58 @@ def _build_report(signals, allocs, budget):
         score = _calc_score(ahr)
         
         # 确定区间和颜色
-        # 彩虹条颜色分布(从左到右): 红(0%)→橙(16%)→黄(33%)→蓝(50%)→浅绿(66%)→绿(83%)→深绿(100%)
-        # 对应区间(从左到右): ≥1.2→0.8-1.2→0.6-0.8→0.45-0.6→0.35-0.45→0.25-0.35→<0.25
-        # 注意: 彩虹条是反向的！左边是高价区(红)，右边是低价区(绿)
-        if ahr >= 1.2:
-            zone = '停止'
-            zone_color = '#dc2626'
-            zone_bg = '#fee2e2'
-            bar_color = '#dc2626'
-            bar_width = 0
-        elif ahr >= 0.8:
-            zone = '极贵'
-            zone_color = '#ef4444'
-            zone_bg = '#fee2e2'
-            bar_color = '#ef4444'
-            # 0.8-1.2 对应 0%-16%
-            bar_width = ((1.2 - ahr) / 0.40) * 16
-        elif ahr >= 0.6:
-            zone = '偏贵'
-            zone_color = '#f59e0b'
-            zone_bg = '#fef3c7'
-            bar_color = '#f59e0b'
-            # 0.6-0.8 对应 16%-33%
-            bar_width = 16 + ((0.8 - ahr) / 0.20) * 17
-        elif ahr >= 0.45:
-            zone = '合理'
-            zone_color = '#3b82f6'
-            zone_bg = '#dbeafe'
-            bar_color = '#3b82f6'
-            # 0.45-0.6 对应 33%-50%
-            bar_width = 33 + ((0.6 - ahr) / 0.15) * 17
-        elif ahr >= 0.35:
-            zone = '偏低'
-            zone_color = '#22c55e'
-            zone_bg = '#d1fae5'
-            bar_color = '#22c55e'
-            # 0.35-0.45 对应 50%-66%
-            bar_width = 50 + ((0.45 - ahr) / 0.10) * 16
-        elif ahr >= 0.25:
-            zone = '低估'
-            zone_color = '#10b981'
-            zone_bg = '#a7f3d0'
-            bar_color = '#10b981'
-            # 0.25-0.35 对应 66%-83%
-            bar_width = 66 + ((0.35 - ahr) / 0.10) * 17
-        else:
+        # 彩虹条颜色分布(从左到右): 深绿→绿→浅绿→蓝→黄→橙→红
+        # 对应区间(从左到右): <0.25→0.25-0.35→0.35-0.45→0.45-0.6→0.6-0.8→0.8-1.2→≥1.2
+        # 左边是低价区(绿)，右边是高价区(红)，符合直觉
+        if ahr < 0.25:
             zone = '极低估'
             zone_color = '#059669'
             zone_bg = '#6ee7b7'
             bar_color = '#059669'
-            # <0.25 对应 83%-100%
-            bar_width = 83 + ((0.25 - ahr) / 0.25) * 17
+            # <0.25 对应 0%-12%
+            bar_width = (ahr / 0.25) * 12
+        elif ahr < 0.35:
+            zone = '低估'
+            zone_color = '#10b981'
+            zone_bg = '#a7f3d0'
+            bar_color = '#10b981'
+            # 0.25-0.35 对应 12%-28%
+            bar_width = 12 + ((ahr - 0.25) / 0.10) * 16
+        elif ahr < 0.45:
+            zone = '偏低'
+            zone_color = '#22c55e'
+            zone_bg = '#d1fae5'
+            bar_color = '#22c55e'
+            # 0.35-0.45 对应 28%-44%
+            bar_width = 28 + ((ahr - 0.35) / 0.10) * 16
+        elif ahr < 0.6:
+            zone = '合理'
+            zone_color = '#3b82f6'
+            zone_bg = '#dbeafe'
+            bar_color = '#3b82f6'
+            # 0.45-0.6 对应 44%-56%
+            bar_width = 44 + ((ahr - 0.45) / 0.15) * 12
+        elif ahr < 0.8:
+            zone = '偏贵'
+            zone_color = '#f59e0b'
+            zone_bg = '#fef3c7'
+            bar_color = '#f59e0b'
+            # 0.6-0.8 对应 56%-72%
+            bar_width = 56 + ((ahr - 0.6) / 0.20) * 16
+        elif ahr < 1.2:
+            zone = '极贵'
+            zone_color = '#ef4444'
+            zone_bg = '#fee2e2'
+            bar_color = '#ef4444'
+            # 0.8-1.2 对应 72%-88%
+            bar_width = 72 + ((ahr - 0.8) / 0.40) * 16
+        else:
+            zone = '停止'
+            zone_color = '#dc2626'
+            zone_bg = '#fee2e2'
+            bar_color = '#dc2626'
+            # ≥1.2 对应 88%-100%
+            bar_width = 88 + min((ahr - 1.2) / 0.3, 1) * 12
         
         score_bg = '#22c55e' if score >= 70 else '#f59e0b' if score >= 40 else '#ef4444'
         momentum_text = momentum_cn.get(s['momentum'], s['momentum'])
@@ -669,16 +670,21 @@ def _build_report(signals, allocs, budget):
             <div style="font-size:14px;color:#6b7280;margin-bottom:8px;">价格 <span style="font-size:18px;font-weight:bold;color:#1f2937;">${prc:,.2f}</span> USDT</div>
             
             <!-- Kenne值彩虹条指示器 -->
-            <div style="margin-bottom:12px;">
-                <div style="position:relative;height:28px;border-radius:6px;overflow:hidden;">
-                    <!-- 彩虹渐变背景: 左红(高价) -> 右绿(低价) -->
-                    <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(90deg,#dc2626 0%,#ef4444 16%,#f59e0b 33%,#3b82f6 50%,#22c55e 66%,#10b981 83%,#059669 100%);"></div>
+            <div style="margin-bottom:8px;">
+                <!-- 标签行 -->
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#6b7280;margin-bottom:4px;">
+                    <span>低</span>
+                    <span>贵</span>
+                </div>
+                <div style="position:relative;height:24px;border-radius:6px;overflow:hidden;">
+                    <!-- 彩虹渐变背景: 左绿(低价) -> 右红(高价) -->
+                    <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(90deg,#059669 0%,#10b981 12%,#22c55e 28%,#3b82f6 44%,#f59e0b 56%,#ef4444 72%,#dc2626 88%);border-radius:6px;"></div>
                     <!-- 黑色指针 -->
                     <div style="position:absolute;top:0;left:{bar_width}%;transform:translateX(-50%);width:4px;height:100%;background:#1f2937;box-shadow:0 0 6px rgba(0,0,0,0.8);z-index:10;"></div>
                     <!-- 顶部白色小三角 -->
                     <div style="position:absolute;top:0;left:{bar_width}%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid #1f2937;z-index:11;"></div>
                     <!-- Kenne值标签 -->
-                    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:12px;font-weight:bold;color:white;text-shadow:0 1px 3px rgba(0,0,0,0.8);z-index:5;">Kenne {ahr:.4f}</div>
+                    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;font-weight:bold;color:white;text-shadow:0 1px 3px rgba(0,0,0,0.9);z-index:5;">Kenne {ahr:.4f}</div>
                 </div>
             </div>
             
@@ -806,38 +812,42 @@ def _build_report(signals, allocs, budget):
             
             <!-- Kenne Reference - 7档区间 -->
             <div style="background:#f8fafc;border-radius:12px;padding:16px;margin:16px 0;">
-                <div style="font-weight:600;margin-bottom:12px;color:#374151;">Kenne Index 参考区间 (F方案)</div>
+                <div style="font-weight:600;margin-bottom:8px;color:#374151;">Kenne Index 参考区间 (F方案)</div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#6b7280;margin-bottom:4px;">
+                    <span>低（便宜）</span>
+                    <span>贵（昂贵）</span>
+                </div>
                 <div style="display:flex;align-items:center;margin-bottom:12px;">
-                    <div style="flex:1;height:12px;background:linear-gradient(90deg,#dc2626 0%,#ef4444 16%,#f59e0b 33%,#3b82f6 50%,#22c55e 66%,#10b981 83%,#059669 100%);border-radius:6px;"></div>
+                    <div style="flex:1;height:12px;background:linear-gradient(90deg,#059669 0%,#10b981 12%,#22c55e 28%,#3b82f6 44%,#f59e0b 56%,#ef4444 72%,#dc2626 88%);border-radius:6px;"></div>
                 </div>
                 <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:12px;">
-                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#fee2e2;border-radius:6px;">
-                        <span style="color:#991b1b;font-weight:500;">🛑 ≥1.2 停止</span>
-                        <span style="color:#dc2626;font-weight:bold;">0x</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#ffedd5;border-radius:6px;">
-                        <span style="color:#9a3412;font-weight:500;">📉 0.8-1.2 极贵</span>
-                        <span style="color:#f97316;font-weight:bold;">0.3x</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#fef3c7;border-radius:6px;">
-                        <span style="color:#92400e;font-weight:500;">📊 0.6-0.8 偏贵</span>
-                        <span style="color:#f59e0b;font-weight:bold;">0.6x</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#dbeafe;border-radius:6px;">
-                        <span style="color:#1e40af;font-weight:500;">🎯 0.45-0.6 合理</span>
-                        <span style="color:#3b82f6;font-weight:bold;">1x</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#d1fae5;border-radius:6px;">
-                        <span style="color:#065f46;font-weight:500;">💚 0.35-0.45 偏低</span>
-                        <span style="color:#10b981;font-weight:bold;">1.5x</span>
+                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#6ee7b7;border-radius:6px;">
+                        <span style="color:#064e3b;font-weight:500;">🚀 <0.25 极低估</span>
+                        <span style="color:#047857;font-weight:bold;">3x</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#a7f3d0;border-radius:6px;">
                         <span style="color:#047857;font-weight:500;">✅ 0.25-0.35 低估</span>
                         <span style="color:#059669;font-weight:bold;">2x</span>
                     </div>
-                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#6ee7b7;border-radius:6px;grid-column:span 2;">
-                        <span style="color:#064e3b;font-weight:500;">🚀 <0.25 极低估</span>
-                        <span style="color:#047857;font-weight:bold;">3x</span>
+                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#d1fae5;border-radius:6px;">
+                        <span style="color:#065f46;font-weight:500;">💚 0.35-0.45 偏低</span>
+                        <span style="color:#10b981;font-weight:bold;">1.5x</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#dbeafe;border-radius:6px;">
+                        <span style="color:#1e40af;font-weight:500;">🎯 0.45-0.6 合理</span>
+                        <span style="color:#3b82f6;font-weight:bold;">1x</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#fef3c7;border-radius:6px;">
+                        <span style="color:#92400e;font-weight:500;">📊 0.6-0.8 偏贵</span>
+                        <span style="color:#f59e0b;font-weight:bold;">0.6x</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#ffedd5;border-radius:6px;">
+                        <span style="color:#9a3412;font-weight:500;">📉 0.8-1.2 极贵</span>
+                        <span style="color:#f97316;font-weight:bold;">0.3x</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:6px 10px;background:#fee2e2;border-radius:6px;grid-column:span 2;">
+                        <span style="color:#991b1b;font-weight:500;">🛑 ≥1.2 停止</span>
+                        <span style="color:#dc2626;font-weight:bold;">0x</span>
                     </div>
                 </div>
             </div>
@@ -981,4 +991,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-# Force rebuild
